@@ -18,4 +18,26 @@ package services
 
 import (
 	"fmt"
+
+	"github.com/gravitational/teleport/lib/utils"
+
+	"gopkg.in/check.v1"
 )
+
+type TrustedClusterSuite struct{}
+
+var _ = check.Suite(&TrustedClusterSuite{})
+var _ = fmt.Printf
+
+func (s *TrustedClusterSuite) SetUpSuite(c *check.C) {
+	utils.InitLoggerForTests()
+}
+
+func (s *TrustedClusterSuite) TearDownSuite(c *check.C) {
+}
+
+func (s *TrustedClusterSuite) SetUpTest(c *check.C) {
+}
+
+func (s *TrustedClusterSuite) TearDownTest(c *check.C) {
+}
