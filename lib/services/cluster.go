@@ -26,7 +26,7 @@ import (
 	"github.com/gravitational/trace"
 )
 
-type TrustedClusterCRUD interface {
+type TrustedClusterBackend interface {
 	UpsertCluster(TrustedCluster) error
 	GetCluster(string) (TrustedCluster, error)
 	GetClusters() ([]TrustedCluster, error)

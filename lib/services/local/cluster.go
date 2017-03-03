@@ -24,19 +24,19 @@ import (
 	"github.com/gravitational/trace"
 )
 
-// TrustedClusterCRUDService is responsible for managing trusted cluster resources.
-type TrustedClusterCRUDService struct {
+// TrustedClusterBackendService is responsible for managing trusted cluster resources.
+type TrustedClusterBackendService struct {
 	backend.Backend
 }
 
-// NewTrustedClusterCRUDService returns a new TrustedClusterCRUDService.
-func NewTrustedClusterCRUDService(backend backend.Backend) *TrustedClusterCRUDService {
-	return &TrustedClusterCRUDService{
+// NewTrustedClusterBackendService returns a new TrustedClusterBackendService.
+func NewTrustedClusterBackendService(backend backend.Backend) *TrustedClusterBackendService {
+	return &TrustedClusterBackendService{
 		Backend: backend,
 	}
 }
 
-func (s *TrustedClusterCRUDService) UpsertCluster(trustedCluster services.TrustedCluster) error {
+func (s *TrustedClusterBackendService) UpsertCluster(trustedCluster services.TrustedCluster) error {
 	data, err := services.GetTrustedClusterMarshaler().Marshal(trustedCluster)
 	if err != nil {
 		return trace.Wrap(err)
@@ -50,7 +50,7 @@ func (s *TrustedClusterCRUDService) UpsertCluster(trustedCluster services.Truste
 	return nil
 }
 
-func (s *TrustedClusterCRUDService) GetCluster(name string) (services.TrustedCluster, error) {
+func (s *TrustedClusterBackendService) GetCluster(name string) (services.TrustedCluster, error) {
 	data, err := s.GetVal([]string{"trustedclusters"}, name)
 	if err != nil {
 		if trace.IsNotFound(err) {
@@ -62,7 +62,7 @@ func (s *TrustedClusterCRUDService) GetCluster(name string) (services.TrustedClu
 	return services.GetTrustedClusterMarshaler().Unmarshal(data)
 }
 
-func (s *TrustedClusterCRUDService) GetClusters() ([]services.TrustedCluster, error) {
+func (s *TrustedClusterBackendService) GetClusters() ([]services.TrustedCluster, error) {
 	keys, err := s.GetKeys([]string{"trustedclusters"})
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -81,7 +81,7 @@ func (s *TrustedClusterCRUDService) GetClusters() ([]services.TrustedCluster, er
 	return out, nil
 }
 
-func (s *TrustedClusterCRUDService) DeleteCluster(name string) error {
+func (s *TrustedClusterBackendService) DeleteCluster(name string) error {
 	err := s.DeleteKey([]string{"trustedclusters"}, name)
 	if err != nil {
 		if trace.IsNotFound(err) {

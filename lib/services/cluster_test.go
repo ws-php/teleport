@@ -19,6 +19,7 @@ package services
 import (
 	"fmt"
 
+	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/utils"
 
 	"gopkg.in/check.v1"
@@ -40,4 +41,42 @@ func (s *TrustedClusterSuite) SetUpTest(c *check.C) {
 }
 
 func (s *TrustedClusterSuite) TearDownTest(c *check.C) {
+}
+
+func (s *TrustedClusterSuite) TestUnmarshal(c *check.C) {
+	input := `
+      {
+        "kind": "trusted_cluster",
+        "metadata": {
+          "name": "foo"
+        },
+        "spec": {
+          "enabled": true,
+          "roles": ["bar", "baz"],
+          "token": "qux",
+          "ssh_proxy_addr": "quux",
+          "ssh_reverse_tunnel_addr": "quuz"
+        }
+      }
+	`
+
+	output := TrustedClusterV2{
+		Kind:    KindTrustedCluster,
+		Version: V2,
+		Metadata: Metadata{
+			Name:      "foo",
+			Namespace: defaults.Namespace,
+		},
+		Spec: TrustedClusterSpecV2{
+			Enabled:              true,
+			Roles:                []string{"bar", "baz"},
+			Token:                "qux",
+			ProxyAddress:         "quux",
+			ReverseTunnelAddress: "quuz",
+		},
+	}
+
+	ap, err := GetTrustedClusterMarshaler().Unmarshal([]byte(input))
+	c.Assert(err, check.IsNil)
+	c.Assert(ap, check.DeepEquals, &output)
 }

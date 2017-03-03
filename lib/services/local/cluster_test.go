@@ -66,7 +66,7 @@ func (s *TrustedClusterSuite) TearDownTest(c *check.C) {
 }
 
 func (s *TrustedClusterSuite) TestTrustedClusterCRUD(c *check.C) {
-	clusterCRUD := NewTrustedClusterCRUDService(s.bk)
+	clusterBackend := NewTrustedClusterBackendService(s.bk)
 
 	tc, err := services.NewTrustedCluster("foo", services.TrustedClusterSpecV2{
 		Enabled:              true,
@@ -88,13 +88,13 @@ func (s *TrustedClusterSuite) TestTrustedClusterCRUD(c *check.C) {
 	c.Assert(err, check.IsNil)
 
 	// create trusted clusters
-	err = clusterCRUD.UpsertCluster(tc)
+	err = clusterBackend.UpsertCluster(tc)
 	c.Assert(err, check.IsNil)
-	err = clusterCRUD.UpsertCluster(stc)
+	err = clusterBackend.UpsertCluster(stc)
 	c.Assert(err, check.IsNil)
 
 	// get trusted cluster make sure it's correct
-	gotTC, err := clusterCRUD.GetCluster("foo")
+	gotTC, err := clusterBackend.GetCluster("foo")
 	c.Assert(err, check.IsNil)
 	c.Assert(gotTC.GetName(), check.Equals, "foo")
 	c.Assert(gotTC.GetEnabled(), check.Equals, true)
@@ -104,16 +104,16 @@ func (s *TrustedClusterSuite) TestTrustedClusterCRUD(c *check.C) {
 	c.Assert(gotTC.GetReverseTunnelAddress(), check.Equals, "quuz")
 
 	// get all clusters
-	allTC, err := clusterCRUD.GetClusters()
+	allTC, err := clusterBackend.GetClusters()
 	c.Assert(err, check.IsNil)
 	c.Assert(allTC, check.HasLen, 2)
 
 	// delete cluster
-	err = clusterCRUD.DeleteCluster("foo")
+	err = clusterBackend.DeleteCluster("foo")
 	c.Assert(err, check.IsNil)
 
 	// make sure it's really gone
-	gotTC, err = clusterCRUD.GetCluster("foo")
+	gotTC, err = clusterBackend.GetCluster("foo")
 	c.Assert(err, check.NotNil)
 	c.Assert(trace.IsNotFound(err), check.Equals, true)
 }
