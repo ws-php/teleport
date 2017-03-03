@@ -104,10 +104,10 @@ func NewAPIServer(config *APIConfig) http.Handler {
 	srv.DELETE("/:version/reversetunnels/:domain", srv.withAuth(srv.deleteReverseTunnel))
 
 	// trusted clusters
-	srv.POST("/:version/trustedcluster", srv.withAuth(srv.createTrustedCluster))
-	srv.GET("/:version/trustedcluster", srv.withAuth(srv.readTrustedCluster))
-	srv.PUT("/:version/trustedcluster/:name", srv.withAuth(srv.updateTrustedCluster))
-	srv.DELETE("/:version/trustedcluster/:name", srv.withAuth(srv.deleteTrustedCluster))
+	srv.POST("/:version/trustedclusters", srv.withAuth(srv.upsertTrustedCluster))
+	srv.GET("/:version/trustedclusters/:name", srv.withAuth(srv.getTrustedCluster))
+	srv.GET("/:version/trustedclusters", srv.withAuth(srv.getTrustedClusters))
+	srv.DELETE("/:version/trustedclusters/:name", srv.withAuth(srv.deleteTrustedCluster))
 
 	// Tokens
 	srv.POST("/:version/tokens", srv.withAuth(srv.generateToken))
@@ -348,24 +348,19 @@ func (s *APIServer) deleteReverseTunnel(auth ClientI, w http.ResponseWriter, r *
 	return message(fmt.Sprintf("reverse tunnel %v deleted", domainName)), nil
 }
 
-type createTrustedClusterReq struct {
+type upsertTrustedClusterReq struct {
 	TrustedCluster json.RawMessage `json:"trusted_cluster"`
 }
 
-func (s *APIServer) createTrustedCluster(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
+func (s *APIServer) upsertTrustedCluster(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
 	return message("ok"), nil
 }
 
-func (s *APIServer) readTrustedCluster(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
+func (s *APIServer) getTrustedCluster(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
 	return message("ok"), nil
 }
 
-type updateTrustedClusterReq struct {
-	Name           string          `json:"name"`
-	TrustedCluster json.RawMessage `json:"trusted_cluster"`
-}
-
-func (s *APIServer) updateTrustedCluster(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
+func (s *APIServer) getTrustedClusters(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
 	return message("ok"), nil
 }
 

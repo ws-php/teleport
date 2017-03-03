@@ -150,6 +150,7 @@ type AuthServer struct {
 	services.Access
 	services.ClusterAuthPreference
 	services.UniversalSecondFactorSettings
+	services.TrustedClusterBackend
 }
 
 func (a *AuthServer) Close() error {
