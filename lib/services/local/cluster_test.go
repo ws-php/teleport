@@ -23,8 +23,10 @@ import (
 
 	"github.com/gravitational/teleport/lib/backend"
 	"github.com/gravitational/teleport/lib/backend/boltbk"
-	//"github.com/gravitational/teleport/lib/services"
+	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/utils"
+
+	"github.com/gravitational/trace"
 
 	"gopkg.in/check.v1"
 )
@@ -64,4 +66,54 @@ func (s *TrustedClusterSuite) TearDownTest(c *check.C) {
 }
 
 func (s *TrustedClusterSuite) TestTrustedClusterCRUD(c *check.C) {
+	clusterCRUD := NewTrustedClusterCRUDService(s.bk)
+
+	tc, err := services.NewTrustedCluster("foo", services.TrustedClusterSpecV2{
+		Enabled:              true,
+		Roles:                []string{"bar", "baz"},
+		Token:                "qux",
+		ProxyAddress:         "quux",
+		ReverseTunnelAddress: "quuz",
+	})
+	c.Assert(err, check.IsNil)
+
+	// we just insert this one for get all
+	stc, err := services.NewTrustedCluster("bar", services.TrustedClusterSpecV2{
+		Enabled:              false,
+		Roles:                []string{"baz", "aux"},
+		Token:                "quux",
+		ProxyAddress:         "quuz",
+		ReverseTunnelAddress: "corge",
+	})
+	c.Assert(err, check.IsNil)
+
+	// create trusted clusters
+	err = clusterCRUD.UpsertCluster(tc)
+	c.Assert(err, check.IsNil)
+	err = clusterCRUD.UpsertCluster(stc)
+	c.Assert(err, check.IsNil)
+
+	// get trusted cluster make sure it's correct
+	gotTC, err := clusterCRUD.GetCluster("foo")
+	c.Assert(err, check.IsNil)
+	c.Assert(gotTC.GetName(), check.Equals, "foo")
+	c.Assert(gotTC.GetEnabled(), check.Equals, true)
+	c.Assert(gotTC.GetRoles(), check.DeepEquals, []string{"bar", "baz"})
+	c.Assert(gotTC.GetToken(), check.Equals, "qux")
+	c.Assert(gotTC.GetProxyAddress(), check.Equals, "quux")
+	c.Assert(gotTC.GetReverseTunnelAddress(), check.Equals, "quuz")
+
+	// get all clusters
+	allTC, err := clusterCRUD.GetClusters()
+	c.Assert(err, check.IsNil)
+	c.Assert(allTC, check.HasLen, 2)
+
+	// delete cluster
+	err = clusterCRUD.DeleteCluster("foo")
+	c.Assert(err, check.IsNil)
+
+	// make sure it's really gone
+	gotTC, err = clusterCRUD.GetCluster("foo")
+	c.Assert(err, check.NotNil)
+	c.Assert(trace.IsNotFound(err), check.Equals, true)
 }

@@ -17,6 +17,8 @@ limitations under the License.
 package local
 
 import (
+	"sort"
+
 	"github.com/gravitational/teleport/lib/backend"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/trace"
@@ -75,13 +77,12 @@ func (s *TrustedClusterCRUDService) GetClusters() ([]services.TrustedCluster, er
 		out[i] = tc
 	}
 
-	// TODO(russjones): Sort?
-
+	sort.Sort(services.SortedTrustedCluster(out))
 	return out, nil
 }
 
 func (s *TrustedClusterCRUDService) DeleteCluster(name string) error {
-	err := s.DeleteBucket([]string{"trustedclusters"}, name)
+	err := s.DeleteKey([]string{"trustedclusters"}, name)
 	if err != nil {
 		if trace.IsNotFound(err) {
 			return trace.NotFound("trusted cluster %q not found", name)

@@ -162,7 +162,7 @@ const TrustedClusterSpecSchemaTemplate = `{
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "enabled": {"type": "bool"},
+    "enabled": {"type": "boolean"},
     "roles": {
       "type": "array",
       "items": {
@@ -229,4 +229,22 @@ func (t *TeleportTrustedClusterMarshaler) Unmarshal(bytes []byte) (TrustedCluste
 // Marshal marshals role to JSON or YAML.
 func (t *TeleportTrustedClusterMarshaler) Marshal(c TrustedCluster, opts ...MarshalOption) ([]byte, error) {
 	return json.Marshal(c)
+}
+
+// SortedTrustedCluster sorts clusters by name
+type SortedTrustedCluster []TrustedCluster
+
+// Len returns the length of a list.
+func (s SortedTrustedCluster) Len() int {
+	return len(s)
+}
+
+// Less compares items by name.
+func (s SortedTrustedCluster) Less(i, j int) bool {
+	return s[i].GetName() < s[j].GetName()
+}
+
+// Swap swaps two items in a list.
+func (s SortedTrustedCluster) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
 }
