@@ -103,10 +103,17 @@ func NewAPIServer(config *APIConfig) http.Handler {
 	srv.GET("/:version/reversetunnels", srv.withAuth(srv.getReverseTunnels))
 	srv.DELETE("/:version/reversetunnels/:domain", srv.withAuth(srv.deleteReverseTunnel))
 
+	// trusted clusters
+	srv.POST("/:version/trustedcluster", srv.withAuth(srv.createTrustedCluster))
+	srv.GET("/:version/trustedcluster", srv.withAuth(srv.readTrustedCluster))
+	srv.PUT("/:version/trustedcluster/:name", srv.withAuth(srv.updateTrustedCluster))
+	srv.DELETE("/:version/trustedcluster/:name", srv.withAuth(srv.deleteTrustedCluster))
+
 	// Tokens
 	srv.POST("/:version/tokens", srv.withAuth(srv.generateToken))
 	srv.POST("/:version/tokens/register", srv.withAuth(srv.registerUsingToken))
 	srv.POST("/:version/tokens/register/auth", srv.withAuth(srv.registerNewAuthServer))
+	srv.POST("/:version/tokens/register/cluster", srv.withAuth(srv.registerNewTrustedCluster))
 
 	// Sesssions
 	srv.POST("/:version/namespaces/:namespace/sessions", srv.withAuth(srv.createSession))
@@ -339,6 +346,31 @@ func (s *APIServer) deleteReverseTunnel(auth ClientI, w http.ResponseWriter, r *
 		return nil, trace.Wrap(err)
 	}
 	return message(fmt.Sprintf("reverse tunnel %v deleted", domainName)), nil
+}
+
+type createTrustedClusterReq struct {
+	TrustedCluster json.RawMessage `json:"trusted_cluster"`
+}
+
+func (s *APIServer) createTrustedCluster(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
+	return message("ok"), nil
+}
+
+func (s *APIServer) readTrustedCluster(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
+	return message("ok"), nil
+}
+
+type updateTrustedClusterReq struct {
+	Name           string          `json:"name"`
+	TrustedCluster json.RawMessage `json:"trusted_cluster"`
+}
+
+func (s *APIServer) updateTrustedCluster(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
+	return message("ok"), nil
+}
+
+func (s *APIServer) deleteTrustedCluster(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
+	return message("ok"), nil
 }
 
 // getTokens returns a list of active provisioning tokens. expired (inactive) tokens are not returned
@@ -684,6 +716,22 @@ func (s *APIServer) registerNewAuthServer(auth ClientI, w http.ResponseWriter, r
 		return nil, trace.Wrap(err)
 	}
 	err := auth.RegisterNewAuthServer(req.Token)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return message("ok"), nil
+}
+
+type registerNewTrustedClusterReq struct {
+	Token string `json:"token"`
+}
+
+func (s *APIServer) registerNewTrustedCluster(auth ClientI, w http.ResponseWriter, r *http.Request, _ httprouter.Params, version string) (interface{}, error) {
+	var req *registerNewTrustedClusterReq
+	if err := httplib.ReadJSON(r, &req); err != nil {
+		return nil, trace.Wrap(err)
+	}
+	err := auth.RegisterNewTrustedCluster(req.Token)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}

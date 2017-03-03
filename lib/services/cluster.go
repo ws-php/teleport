@@ -27,13 +27,15 @@ import (
 )
 
 type TrustedClusterCRUD interface {
-	CreateCluster(TrustedCluster) error
-	ReadCluster(string) TrustedCluster
-	UpdateCluster(TrustedCluster) error
+	UpsertCluster(TrustedCluster) error
+	GetCluster(string) (TrustedCluster, error)
+	GetClusters() ([]TrustedCluster, error)
 	DeleteCluster(string) error
 }
 
 type TrustedCluster interface {
+	GetName() string
+	SetName(string)
 	GetEnabled() bool
 	SetEnabled(bool)
 	GetRoles() []string
@@ -96,6 +98,14 @@ type TrustedClusterSpecV2 struct {
 	// ReverseTunnelAddress is the address of the SSH ??? server of the cluster to join. If
 	// not set, it is derived from <metadata.name>:<default reverse tunnel port>.
 	ReverseTunnelAddress string `json:"ssh_reverse_tunnel_addr"`
+}
+
+func (c *TrustedClusterV2) GetName() string {
+	return c.Metadata.Name
+}
+
+func (c *TrustedClusterV2) SetName(e string) {
+	c.Metadata.Name = e
 }
 
 func (c *TrustedClusterV2) GetEnabled() bool {

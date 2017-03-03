@@ -43,6 +43,8 @@ const (
 	RoleAdmin Role = "Admin"
 	// RoleProvisionToken is a role for nodes authenticated using provisioning tokens
 	RoleProvisionToken Role = "ProvisionToken"
+	// RoleTrustedCluster is a role needed for tokens used to add trusted clusters.
+	RoleTrustedCluster Role = "TrustedCluster"
 	// RoleSignup is for first time signing up users
 	RoleSignup Role = "Signup"
 	// RoleNop is used for actions that already using external authz mechanisms
