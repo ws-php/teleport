@@ -36,7 +36,7 @@ func NewTrustedClusterBackendService(backend backend.Backend) *TrustedClusterBac
 	}
 }
 
-func (s *TrustedClusterBackendService) UpsertCluster(trustedCluster services.TrustedCluster) error {
+func (s *TrustedClusterBackendService) UpsertTrustedCluster(trustedCluster services.TrustedCluster) error {
 	data, err := services.GetTrustedClusterMarshaler().Marshal(trustedCluster)
 	if err != nil {
 		return trace.Wrap(err)
@@ -50,7 +50,7 @@ func (s *TrustedClusterBackendService) UpsertCluster(trustedCluster services.Tru
 	return nil
 }
 
-func (s *TrustedClusterBackendService) GetCluster(name string) (services.TrustedCluster, error) {
+func (s *TrustedClusterBackendService) GetTrustedCluster(name string) (services.TrustedCluster, error) {
 	data, err := s.GetVal([]string{"trustedclusters"}, name)
 	if err != nil {
 		if trace.IsNotFound(err) {
@@ -62,7 +62,7 @@ func (s *TrustedClusterBackendService) GetCluster(name string) (services.Trusted
 	return services.GetTrustedClusterMarshaler().Unmarshal(data)
 }
 
-func (s *TrustedClusterBackendService) GetClusters() ([]services.TrustedCluster, error) {
+func (s *TrustedClusterBackendService) GetTrustedClusters() ([]services.TrustedCluster, error) {
 	keys, err := s.GetKeys([]string{"trustedclusters"})
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -70,7 +70,7 @@ func (s *TrustedClusterBackendService) GetClusters() ([]services.TrustedCluster,
 
 	out := make([]services.TrustedCluster, len(keys))
 	for i, name := range keys {
-		tc, err := s.GetCluster(name)
+		tc, err := s.GetTrustedCluster(name)
 		if err != nil {
 			return nil, trace.Wrap(err)
 		}
@@ -81,7 +81,7 @@ func (s *TrustedClusterBackendService) GetClusters() ([]services.TrustedCluster,
 	return out, nil
 }
 
-func (s *TrustedClusterBackendService) DeleteCluster(name string) error {
+func (s *TrustedClusterBackendService) DeleteTrustedCluster(name string) error {
 	err := s.DeleteKey([]string{"trustedclusters"}, name)
 	if err != nil {
 		if trace.IsNotFound(err) {

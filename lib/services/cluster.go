@@ -27,10 +27,10 @@ import (
 )
 
 type TrustedClusterBackend interface {
-	UpsertCluster(TrustedCluster) error
-	GetCluster(string) (TrustedCluster, error)
-	GetClusters() ([]TrustedCluster, error)
-	DeleteCluster(string) error
+	UpsertTrustedCluster(TrustedCluster) error
+	GetTrustedCluster(string) (TrustedCluster, error)
+	GetTrustedClusters() ([]TrustedCluster, error)
+	DeleteTrustedCluster(string) error
 }
 
 type TrustedCluster interface {

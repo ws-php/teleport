@@ -146,6 +146,10 @@ func (a *AuthWithRoles) RegisterNewAuthServer(token string) error {
 	return a.authServer.RegisterNewAuthServer(token)
 }
 
+func (a *AuthWithRoles) RegisterNewTrustedCluster(token string) error {
+	return a.authServer.RegisterNewTrustedCluster(token)
+}
+
 func (a *AuthWithRoles) UpsertNode(s services.Server, ttl time.Duration) error {
 	if err := a.action(s.GetNamespace(), services.KindNode, services.ActionWrite); err != nil {
 		return trace.Wrap(err)
@@ -607,6 +611,42 @@ func (a *AuthWithRoles) SetUniversalSecondFactor(u2f services.UniversalSecondFac
 	}
 
 	return a.authServer.SetUniversalSecondFactor(u2f)
+}
+
+func (a *AuthWithRoles) UpsertTrustedCluster(tc services.TrustedCluster) error {
+	err := a.action(defaults.Namespace, services.KindTrustedCluster, services.ActionWrite)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	return a.authServer.UpsertTrustedCluster(tc)
+}
+
+func (a *AuthWithRoles) GetTrustedCluster(name string) (services.TrustedCluster, error) {
+	err := a.action(defaults.Namespace, services.KindTrustedCluster, services.ActionRead)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	return a.authServer.GetTrustedCluster(name)
+}
+
+func (a *AuthWithRoles) GetTrustedClusters() ([]services.TrustedCluster, error) {
+	err := a.action(defaults.Namespace, services.KindTrustedCluster, services.ActionRead)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	return a.authServer.GetTrustedClusters()
+}
+
+func (a *AuthWithRoles) DeleteTrustedCluster(name string) error {
+	err := a.action(defaults.Namespace, services.KindTrustedCluster, services.ActionWrite)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	return a.authServer.DeleteTrustedCluster(name)
 }
 
 // NewAuthWithRoles creates new auth server with access control

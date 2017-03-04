@@ -543,26 +543,6 @@ func (s *AuthServer) RegisterNewAuthServer(token string) error {
 	return nil
 }
 
-// TODO(russjones): Is this really needed? It should do more right? It should actually add the reverse tunnel and do ca exchange?
-func (s *AuthServer) RegisterNewTrustedCluster(token string) error {
-	roles, err := s.ValidateToken(token)
-	if err != nil {
-		msg := fmt.Sprintf("%q [%v] can not join the cluster with role %s, token error: %v", nodeName, hostID, role, err)
-		log.Warnf("[AUTH] %s", msg)
-		return nil, trace.AccessDenied(msg)
-	}
-
-	if !roles.Include(teleport.RoleTrustedCluster) {
-		return trace.AccessDenied("role does not match")
-	}
-
-	if !s.checkTokenTTL(token) {
-		return nil, trace.AccessDenied("%q expired token", token)
-	}
-
-	return nil
-}
-
 func (s *AuthServer) DeleteToken(token string) (err error) {
 	// is this a static token?
 	for _, st := range s.StaticTokens {

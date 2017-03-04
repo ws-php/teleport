@@ -105,6 +105,7 @@ func NewAPIServer(config *APIConfig) http.Handler {
 
 	// trusted clusters
 	srv.POST("/:version/trustedclusters", srv.withAuth(srv.upsertTrustedCluster))
+	srv.POST("/:version/trustedclusters/validate", srv.withAuth(srv.validateTrustedCluster))
 	srv.GET("/:version/trustedclusters/:name", srv.withAuth(srv.getTrustedCluster))
 	srv.GET("/:version/trustedclusters", srv.withAuth(srv.getTrustedClusters))
 	srv.DELETE("/:version/trustedclusters/:name", srv.withAuth(srv.deleteTrustedCluster))
@@ -353,18 +354,111 @@ type upsertTrustedClusterReq struct {
 }
 
 func (s *APIServer) upsertTrustedCluster(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
+	var req *upsertTrustedClusterReq
+	if err := httplib.ReadJSON(r, &req); err != nil {
+		return nil, trace.Wrap(err)
+	}
+	tc, err := services.GetTrustedClusterMarshaler().Unmarshal(req.TrustedCluster)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	hostCA, userCA, err := s.APIConfig.AuthServer.exportCertificateAuthorities()
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	// make request to remote cluster to verify token and perform ca exchange
+	wreq := WaldoRequest{
+		Token:  tc.GetToken(),
+		HostCA: hostCA,
+		UserCA: userCA,
+	}
+	wres, err := Waldo(tc.GetProxyAddress(), wreq)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	// remote cluster verified token now add certificate
+	// authorities and reverse tunnels
+	for _, knownHosts := range wres.CAs {
+		ca, role, err := config.ParseCAKey([]byte(knownHosts), allowedLogins)
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+		err = auth.UpsertCertAuthority(ca, backend.Forever)
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+	}
+	err = auth.UpsertReverseTunnel(services.NewReverseTunnel(tc.GetName(), tc.GetReverseTunnelAddress()))
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	// everything worked, upsert the trusted cluster resource now
+	err = auth.UpsertTrustedCluster(tc)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
 	return message("ok"), nil
+}
+
+func (s *APIServer) validateTrustedCluster(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
+	var wreq WaldoRequest
+	err := json.NewDecoder(r.Body).Decode(&wreq)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	defer r.Body.Close()
+
+	wres, err := auth.Corge(wreq.Token)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	// the trust cluster has a valid token, go ahead and add certificate authorities
+	err = auth.UpsertCertAuthority(wreq.HostCA, 0)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	err = auth.UpsertCertAuthority(wreq.UserCA, 0)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	return wres, nil
 }
 
 func (s *APIServer) getTrustedCluster(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
-	return message("ok"), nil
+	return auth.GetTrustedCluster(p.ByName("name"))
 }
 
 func (s *APIServer) getTrustedClusters(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
-	return message("ok"), nil
+	return auth.GetTrustedClusters()
 }
 
 func (s *APIServer) deleteTrustedCluster(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
+	tcName := p.ByName("name")
+
+	err = auth.DeleteCertAuthority(services.CertAuthID{Type: services.HostCA, DomainName: tcName})
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	err = auth.DeleteCertAuthority(services.CertAuthID{Type: services.UserCA, DomainName: tcName})
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	err := auth.DeleteReverseTunnel(tcName)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	err := auth.DeleteTrustedCluster(tcName)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
 	return message("ok"), nil
 }
 
