@@ -7,6 +7,7 @@ import (
 
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/lib/defaults"
+	"github.com/gravitational/teleport/lib/sshutils"
 	"github.com/gravitational/teleport/lib/utils"
 
 	"github.com/gravitational/trace"
@@ -63,6 +64,8 @@ type CertAuthority interface {
 	GetRawObject() interface{}
 	// Check checks object for errors
 	Check() error
+	// ExportKnownHosts returns the known_hosts representation of a CA.
+	ExportKnownHosts() (string, error)
 	// SetSigningKeys sets signing keys
 	SetSigningKeys([][]byte) error
 	// AddRole adds a role to ca role list
@@ -94,6 +97,36 @@ func NewCertAuthority(caType CertAuthType, clusterName string, signingKeys, chec
 			SigningKeys:  signingKeys,
 		},
 	}
+}
+
+// NewCertAuthorityFromKnownHosts transforms a entry in the known_hosts format into a CertAuthority.
+func NewCertAuthorityFromKnownHosts(bytes []byte, allowedLogins []string) (CertAuthority, error) {
+
+	marker, options, pubKey, comment, _, err := ssh.ParseKnownHosts(bytes)
+	if marker != "cert-authority" {
+		return nil, nil, trace.BadParameter("invalid file format. expected '@cert-authority` marker")
+	}
+	if err != nil {
+		return nil, nil, trace.BadParameter("invalid public key")
+	}
+
+	teleportOpts, err := url.ParseQuery(comment)
+	if err != nil {
+		return nil, nil, trace.BadParameter("invalid key comment: %q", comment)
+	}
+	caType := services.CertAuthType(teleportOpts.Get("type"))
+	if caType != services.HostCA && authType != services.UserCA {
+		return nil, nil, trace.BadParameter("unsupported CA type: %q", caType)
+	}
+	if len(options) == 0 {
+		return nil, nil, trace.BadParameter("key without cluster_name")
+	}
+
+	const prefix = "*."
+	clusterName := strings.TrimPrefix(options[0], prefix)
+
+	//roles??
+	return NewCertAuthority(caType, clusterName, nil, [][]byte{ssh.MarshalAuthorizedKey(pubKey)}, nil), nil
 }
 
 // CertAuthoritiesToV1 converts list of cert authorities to V1 slice
@@ -255,6 +288,41 @@ func (ca *CertAuthorityV2) Check() error {
 		return trace.Wrap(err)
 	}
 	return nil
+}
+
+// ExportKnownHosts returns the known_hosts representation of a CA.
+func (ca *CertAuthorityV2) ExportKnownHosts(roles RoleSet) ([]string, error) {
+	knownHosts := []string{}
+
+	for _, keyBytes := range ca.GetCheckingKeys() {
+		fingerprint, err := sshutils.AuthorizedKeyFingerprint(keyBytes)
+		if err != nil {
+			return "", trace.Wrap(err)
+		}
+
+		if a.exportAuthorityFingerprint != "" && fingerprint != a.exportAuthorityFingerprint {
+			continue
+		}
+
+		options := url.Values{
+			"type": []string{string(ca.GetType())},
+		}
+		allowedLogins, _ := roles.CheckLogins(defaults.MinCertDuration + time.Second)
+		if len(allowedLogins) > 0 {
+			options["logins"] = allowedLogins
+		}
+
+		// Every auth public key is exported as a single line adhering to man sshd (8)
+		// authorized_hosts format, a space-separated list of: marker, hosts, key, and comment
+		// example:
+		// 		@cert-authority *.cluster-a ssh-rsa AAA... type=user
+		// We use URL encoding to pass the CA type and allowed logins into the comment field
+		kh = fmt.Sprintf("@cert-authority *.%s %s %s\n",
+			ca.GetClusterName(), strings.TrimSpace(string(keyBytes)), options.Encode())
+		knownHosts = append(knownHosts, kh)
+	}
+
+	return knownHosts, nil
 }
 
 // CertAuthoritySpecV2 is a host or user certificate authority that
